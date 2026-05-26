@@ -3,12 +3,7 @@ import { Compass, Sun, Moon, Info } from "lucide-react";
 import "./Header.css";
 import Button from "../../ui/Button";
 
-export default function AppHeader({
-  theme,
-  setTheme,
-  setShowICloudModal,
-  isCloudSynced,
-}) {
+export default function Header({ theme, setTheme }) {
   return (
     <header className="app-header">
       <div className="logo-section">
@@ -17,14 +12,6 @@ export default function AppHeader({
       </div>
 
       <div className="header-actions">
-        <div
-          className={`icloud-badge ${isCloudSynced ? "synced" : ""}`}
-          onClick={() => setShowICloudModal(true)}
-        >
-          iCloud
-          <Info size={14} />
-        </div>
-
         <Button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun /> : <Moon />}
         </Button>

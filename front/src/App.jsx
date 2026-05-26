@@ -138,12 +138,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header
-        theme={theme}
-        setTheme={setTheme}
-        setShowICloudModal={setShowICloudModal}
-        isCloudSynced={isCloudSynced}
-      />
+      <Header theme={theme} setTheme={setTheme} />
 
       <div className="dashboard-grid">
         <div className="left-column">
