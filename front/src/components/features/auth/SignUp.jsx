@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from 'axios'; // 💡 1. 누락되었던 axios 임포트 추가!
+import './Signup.css';    // 💡 2. CSS 파일명 대소문자 확인 (실제 파일명이 Signup.css 또는 Auth.css인지 맞춰주세요)
 
 function SignUp({ onLoginSuccess, onClose }) {
     // isLogin: true = 로그인, false = 회원가입
@@ -45,10 +46,12 @@ function SignUp({ onLoginSuccess, onClose }) {
                 }
             } catch (error) {
                 setIsError(true);
+                // 백엔드가 에러 응답을 준 경우
                 if (error.response) {
-                    setMessage(error.response.data);
+                    setMessage(error.response.data || '아이디 또는 비밀번호를 확인해주세요.');
                 } else {
-                    setMessage('서버와 통신 중 오류가 발생했습니다.');
+                    // 서버가 완전히 꺼져있거나 네트워크 자체가 단절된 경우
+                    setMessage('서버와 연결할 수 없습니다. 백엔드 상태를 확인해주세요.');
                 }
             }
         } else {
@@ -185,7 +188,6 @@ function SignUp({ onLoginSuccess, onClose }) {
     );
 }
 
-// 기존 프로젝트의 세련된 글래스모피즘 테마 스타일링 유지 및 개선
 const styles = {
     container: {
         background: 'rgba(20, 20, 20, 0.45)',

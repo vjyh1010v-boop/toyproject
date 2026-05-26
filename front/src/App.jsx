@@ -4,8 +4,7 @@ import Header from "./components/features/header/Header";
 import TravelForm from "./components/features/form/TravelForm";
 import TravelList from "./components/features/list/TravelList";
 import TravelMap from "./components/features/map/TravelMap";
-import SignUp from "./SignUp";
-
+import SignUp from "./components/features/auth/SignUp";
 import Modal from "./components/ui/Modal";
 
 import { useMapEvents } from "react-leaflet";
@@ -204,29 +203,29 @@ function App() {
         onLogout={handleLogout}
       />
 
-      <div className="dashboard-grid">
-        <div className="left-column">
-          <TravelList
-            entries={entries}
-            setActiveEntryId={setActiveEntryId}
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
-          />
-        </div>
+        <div className="dashboard-grid">
+          <div className="left-column">
+            <TravelList
+              entries={entries}
+              setActiveEntryId={setActiveEntryId}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+            />
+          </div>
 
-        <div className="right-column">
-          <TravelMap
-            entries={entries}
-            mapCenter={[37.5665, 126.978]} // 임시 고정값
-            mapZoom={13}
-            theme={theme}
-            activeEntryId={activeEntryId}
-            setActiveEntryId={setActiveEntryId}
-            getCustomMarkerIcon={getCustomMarkerIcon}
-            MapClickHandler={MapClickHandler}
-          />
+          <div className="right-column">
+            <TravelMap
+              entries={entries}
+              mapCenter={[37.5665, 126.978]} // 임시 고정값
+              mapZoom={13}
+              theme={theme}
+              activeEntryId={activeEntryId}
+              setActiveEntryId={setActiveEntryId}
+              getCustomMarkerIcon={getCustomMarkerIcon}
+              MapClickHandler={MapClickHandler}
+            />
+          </div>
         </div>
-      </div>
 
       <Modal
         open={isAddingNew || !!isEditingId} // 신규 등록 중이거나, 수정 중인 ID가 있을 때 열림
