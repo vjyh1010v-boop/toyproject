@@ -1,0 +1,51 @@
+name: Deploy React to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+
+# GitHub Pages 배포를 위한 권한 설정
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 여러 배포가 실행되면 충돌나지 않게 제어
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+
+      - name: Install and Build React
+        run: |
+          cd front
+          npm install
+          npm run build  # 👈 여기서 보통 'build' 또는 'dist' 폴더가 생깁니다.
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 💡 핵심: front 폴더 안에 생성된 빌드 결과물 경로를 지정합니다.
+      # 만약 Vite를 쓰신다면 front/dist로 변경하셔야 합니다. 일반 React(CRA)면 front/build 입니다.
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'front/dist' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
