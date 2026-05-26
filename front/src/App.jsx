@@ -26,13 +26,6 @@ function App() {
   const [filterRegion, setFilterRegion] = useState("All");
   const [theme, setTheme] = useState("dark");
 
-  // iCloud Simulated Syncing State
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [syncLog, setSyncLog] = useState("");
-  const [isCloudSynced, setIsCloudSynced] = useState(false);
-  const [showICloudModal, setShowICloudModal] = useState(false);
-
   // Form State
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [isEditingId, setIsEditingId] = useState(null);
@@ -50,6 +43,10 @@ function App() {
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   const fetchTravels = async () => {
     const data = await getTravels();
