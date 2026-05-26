@@ -27,7 +27,7 @@ public class TravelEntry {
 
     private String locationName;
 
-    private LocalDate date;
+    private LocalDate travelDate;
 
     @Column(length = 2000)
     private String content;
