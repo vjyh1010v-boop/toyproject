@@ -5,6 +5,9 @@ import TravelForm from "./components/features/form/TravelForm";
 import TravelList from "./components/features/list/TravelList";
 import TravelMap from "./components/features/map/TravelMap";
 
+import Modal from "./components/ui/Modal";
+
+import { useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -43,6 +46,40 @@ function App() {
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef(null);
+
+  // 💡 [핵심 로직] TravelMap 내부에 심어줄 진짜 클릭 핸들러 컴포넌트 정의
+  const MapClickHandler = () => {
+    useMapEvents({
+      click: (e) => {
+        const { lat, lng } = e.latlng;
+        console.log(`🎯 지도 클릭됨: 위도 ${lat}, 경도 ${lng}`);
+
+        // 수정 중이 아닐 때만 작동하도록 방어 코드 설정 (선택)
+        if (isEditingId) {
+          if (
+            !window.confirm(
+              "현재 수정 중인 내용이 있습니다. 신규 등록으로 전환할까요?",
+            )
+          ) {
+            return;
+          }
+          setIsEditingId(null); // 수정 모드 해제
+        }
+
+        // 1. 클릭한 좌표를 소수점 6자리까지 예쁘게 잘라서 폼 데이터에 세팅
+        setFormData((prev) => ({
+          ...prev,
+          lat: lat.toFixed(6),
+          lng: lng.toFixed(6),
+          locationName: "", // 새로운 장소 지정을 위해 비워주기
+        }));
+
+        // 2. 숨겨져 있던 신규 추가 폼(TravelForm)을 화면에 띄움
+        setIsAddingNew(true);
+      },
+    });
+    return null;
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -145,18 +182,6 @@ function App() {
             handleEdit={handleEdit}
             handleDelete={handleDelete}
           />
-          {isAddingNew && (
-            <TravelForm
-              formData={formData}
-              setFormData={setFormData}
-              isEditingId={isEditingId}
-              setIsAddingNew={setIsAddingNew}
-              setIsEditingId={setIsEditingId}
-              handleSubmit={handleFormSubmit}
-              fileInputRef={fileInputRef}
-              exifStatus={exifStatus}
-            />
-          )}
         </div>
 
         <div className="right-column">
@@ -165,13 +190,34 @@ function App() {
             mapCenter={[37.5665, 126.978]} // 임시 고정값
             mapZoom={13}
             theme={theme}
+            activeEntryId={activeEntryId}
             setActiveEntryId={setActiveEntryId}
             getCustomMarkerIcon={getCustomMarkerIcon}
-            MapClickHandler={() => null}
-            MapViewUpdater={() => null}
+            MapClickHandler={MapClickHandler}
           />
         </div>
       </div>
+
+      <Modal
+        open={isAddingNew || !!isEditingId} // 신규 등록 중이거나, 수정 중인 ID가 있을 때 열림
+        title={isEditingId ? "발자취 수정하기" : "새 발자취 추가"} // 상황에 맞는 타이틀 지정
+        onClose={() => {
+          setIsAddingNew(false);
+          setIsEditingId(null);
+        }}
+      >
+        {/* 모달 body에 쏙 들어갈 폼 컴포넌트 */}
+        <TravelForm
+          formData={formData}
+          setFormData={setFormData}
+          isEditingId={isEditingId}
+          setIsAddingNew={setIsAddingNew}
+          setIsEditingId={setIsEditingId}
+          handleSubmit={handleFormSubmit}
+          fileInputRef={fileInputRef}
+          exifStatus={exifStatus}
+        />
+      </Modal>
     </div>
   );
 }

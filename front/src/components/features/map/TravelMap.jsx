@@ -1,18 +1,61 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import Button from "../../ui/Button"; // 경로 확인 필요
+// 💡 1. useEffect와 useMap 임포트 추가!
+import React, { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import Button from "../../ui/Button";
 import { Layers, RefreshCcw } from "lucide-react";
 
 import "./TravelMap.css";
+
+// 지도를 움직여주는 진짜 컴포넌트
+function ActualMapUpdater({ activeEntryId, entries }) {
+  const map = useMap();
+
+  useEffect(() => {
+    console.log("현재 선택된 ID:", activeEntryId, typeof activeEntryId);
+    console.log("전체 리스트:", entries);
+
+    if (!activeEntryId || !entries || entries.length === 0) {
+      console.log("데이터가 없어서 이동 로직을 건너뜁니다.");
+      return;
+    }
+
+    const currentEntry = entries.find(
+      (entry) => String(entry.id) === String(activeEntryId),
+    );
+
+    console.log("찾은 여행 기록 데이터:", currentEntry);
+
+    if (currentEntry) {
+      // 💡 백엔드 응답 데이터 형식이 e.latitude 인 것을 반영
+      const lat = currentEntry.latitude || currentEntry.lat;
+      const lng = currentEntry.longitude || currentEntry.lng;
+
+      if (lat && lng) {
+        console.log(`🗺️ [${lat}, ${lng}] 좌표로 이동을 시작합니다!`);
+        map.flyTo([parseFloat(lat), parseFloat(lng)], 14, {
+          animate: true,
+          duration: 1.5,
+        });
+      } else {
+        console.log("❌ 해당 데이터에 위도/경도 값이 없습니다!", currentEntry);
+      }
+    } else {
+      console.log("❌ 일치하는 ID의 데이터를 리스트에서 찾지 못했습니다.");
+    }
+  }, [activeEntryId, entries, map]);
+
+  return null;
+}
 
 export default function TravelMap({
   entries,
   mapCenter,
   mapZoom,
   theme,
-  getCustomMarkerIcon, // App.jsx에서 이미 잘 넘겨주고 있는 함수!
+  getCustomMarkerIcon,
   setActiveEntryId,
   MapClickHandler,
-  MapViewUpdater,
+  activeEntryId, // 💡 2. App.jsx에서 넘겨받을 ID 추가
 }) {
   return (
     <div className="map-wrapper">
@@ -42,8 +85,10 @@ export default function TravelMap({
           }
         />
 
-        <MapViewUpdater center={mapCenter} zoom={mapZoom} />
-        <MapClickHandler />
+        {/* 💡 3. 이름을 겹치지 않게 수정한 진짜 컴포넌트로 호출 */}
+        <ActualMapUpdater activeEntryId={activeEntryId} entries={entries} />
+
+        {MapClickHandler && <MapClickHandler />}
 
         {entries
           .filter((e) => e.latitude != null && e.longitude != null)
@@ -51,7 +96,6 @@ export default function TravelMap({
             <Marker
               key={e.id}
               position={[e.latitude, e.longitude]}
-              /* 💡 바로 이 부분에 커스텀 아이콘 함수를 연결해 줍니다! */
               icon={getCustomMarkerIcon ? getCustomMarkerIcon(e) : undefined}
               eventHandlers={{
                 click: () => setActiveEntryId(e.id),
