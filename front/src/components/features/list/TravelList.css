@@ -1,196 +1,105 @@
-/* Entries Scroll View */
+/* src/components/features/list/TravelList.css */
+
 .entries-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  max-height: 500px;
+  gap: 16px;
+  padding: 12px 4px; /* 오른쪽 스크롤바 공간 확보를 위해 살짝 패딩 조정 */
+
+  /* 💡 고정 픽셀 계산 대신, 부모 영역 내부를 꽉 채우고 넘치면 스크롤되게 변경 */
+  flex-grow: 1;
+  height: 100%;
   overflow-y: auto;
-  padding-right: 0.25rem;
 }
 
+/* 🚀 카드 전체 틀: 내부 요소 크기에 맞춰 유연하게 늘어납니다. */
 .entry-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  background-color: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  padding: 16px;
   cursor: pointer;
-  position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
 
-.entry-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: transparent;
-  transition: background-color 0.2s ease;
+  min-height: 110px;
+  height: auto; /* 내용 길이에 맞춰서 카드는 유연하게 늘어남 */
+  flex-shrink: 0; /* 💡 리스트 안에서 카드가 찌그러지지 않도록 방어 */
 }
 
 .entry-card:hover {
-  transform: translateX(4px);
-  border-color: rgba(139, 92, 246, 0.3);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
 }
 
 .entry-card.active {
-  border-color: var(--accent-primary);
-  box-shadow: var(--shadow-glow);
-}
-
-.entry-card.active::before {
-  background: linear-gradient(
-    to bottom,
-    var(--accent-primary),
-    var(--accent-secondary)
-  );
+  border-color: #8b5cf6;
+  background-color: var(--bg-active, #2563eb10);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
 .entry-card-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.entry-card-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 6px;
 }
 
 .entry-card-title {
+  font-size: 1.1rem;
   font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 12px 0;
 }
 
-.entry-card-location {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+/* 🚀 AI 요약 디자인 */
+.entry-card-ai-summary {
+  background-color: rgba(139, 92, 246, 0.08);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 3px solid #8b5cf6;
   font-size: 0.85rem;
-  color: var(--accent-primary);
-  font-weight: 500;
-}
-
-.entry-card-body {
-  display: flex;
-  gap: 1rem;
-}
-
-.entry-card-thumbnail {
-  width: 70px;
-  height: 70px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 1px solid var(--card-border);
-}
-
-.entry-card-snippet {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-grow: 1;
-}
-
-.entry-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.03);
-  padding-top: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.entry-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.action-btn:hover {
-  background: var(--bg-tertiary);
-}
-
-.action-btn.edit-btn:hover {
-  color: var(--accent-primary);
-}
-
-.action-btn.delete-btn:hover {
-  color: var(--danger);
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.6rem 0.75rem 0.6rem 2.25rem;
-  background: var(--bg-primary);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: var(--accent-primary);
-}
-
-.filter-select {
-  padding: 0.6rem 1rem;
-  background: var(--bg-primary);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  outline: none;
-  cursor: pointer;
-}
-
-/* Diary Entry List Container */
-.entries-header {
+  line-height: 1.5;
+  color: #e2e8f0;
+  margin-bottom: 16px; /* 버튼선과의 확실한 간격 분리 */
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
-.search-filter-row {
+.ai-summary-sparkle {
+  font-weight: 600;
+  color: #8b5cf6;
+  margin-right: 6px;
+}
+
+/* 태그 묶음 */
+.entry-card-tags {
   display: flex;
-  gap: 0.5rem;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.search-input-wrapper {
-  position: relative;
-  flex-grow: 1;
+/* 개별 태그 */
+.entry-tag-item {
+  color: #8b5cf6;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background-color: rgba(139, 92, 246, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
-.search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
+/* 🚀 하단 버튼 영역: 이제 카드 흐름의 막내 레벨이 되어 정상 작동합니다. */
+.entry-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto; /* 내용이 적든 많든 무조건 카드의 최하단에 버튼을 고정 */
+  padding-top: 12px;
+  border-top: 1px solid rgba(51, 65, 85, 0.5);
+  width: 100%;
+  box-sizing: border-box;
 }

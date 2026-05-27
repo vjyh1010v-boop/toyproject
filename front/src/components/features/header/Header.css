@@ -52,3 +52,61 @@
   border-radius: 4px;
   transition: all 0.2s ease;
 }
+
+/* 1. 중앙 탭 전체를 감싸는 컨테이너 */
+.header-tabs {
+  display: none; /* 👈 기본적으로 숨김 */
+  gap: 0.5rem;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+}
+
+/* 2. 네비게이션 탭 기본 버튼 스타일 */
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* 아이콘과 글자 사이 간격 */
+}
+
+/* 3. 마우스 호버(올렸을 때) 효과 */
+.nav-tab-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 4. 💡 활성화(클릭)되었을 때 포인트 컬러 효과 */
+.nav-tab-btn.active {
+  color: var(--accent-primary, #8b5cf6); /* 프로젝트 고유의 강조색 반영 */
+  font-weight: 600;
+  background-color: rgba(139, 92, 246, 0.15); /* 강조색 베이스의 반투명 배경 */
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+/* 모바일/작은 화면 대응 (선택사항: 화면이 너무 좁아지면 글자는 숨기고 아이콘만 표시) */
+@media (max-width: 1200px) {
+  /* 💡 모바일 환경이 되면 숨겨져 있던 헤더 탭 메뉴를 보여줍니다! */
+  .header-tabs {
+    display: flex; /* 👈 짠 나타남 */
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-tab-btn span {
+    display: none;
+  }
+  .nav-tab-btn {
+    padding: 0.5rem;
+  }
+}

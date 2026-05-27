@@ -4,6 +4,7 @@ import Header from "./components/features/header/Header";
 import TravelForm from "./components/features/form/TravelForm";
 import TravelList from "./components/features/list/TravelList";
 import TravelMap from "./components/features/map/TravelMap";
+import TravelAiChat from "./components/features/chat/TravelAiChat"; // 💡 2단계에서 만든 AI 채팅 컴포넌트 임포트
 import SignUp from "./components/features/auth/SignUp";
 import Modal from "./components/ui/Modal";
 
@@ -20,6 +21,42 @@ import {
 import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/util.css";
+
+// 💡 MapClickHandler는 App 컴포넌트 바깥 영역에 두어 최적화 상태를 유지합니다.
+const MapClickHandler = ({
+  isEditingId,
+  setIsEditingId,
+  setFormData,
+  setIsAddingNew,
+}) => {
+  useMapEvents({
+    click: (e) => {
+      const { lat, lng } = e.latlng;
+      console.log(`🎯 지도 클릭됨: 위도 ${lat}, 경도 ${lng}`);
+
+      if (isEditingId) {
+        if (
+          !window.confirm(
+            "현재 수정 중인 내용이 있습니다. 신규 등록으로 전환할까요?",
+          )
+        ) {
+          return;
+        }
+        setIsEditingId(null);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        lat: lat.toFixed(6),
+        lng: lng.toFixed(6),
+        locationName: "",
+      }));
+
+      setIsAddingNew(true);
+    },
+  });
+  return null;
+};
 
 function App() {
   const [entries, setEntries] = useState([]);
@@ -51,6 +88,9 @@ function App() {
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef(null);
 
+  // 💡 지도가 들어있는 우측 컬럼을 타겟팅하기 위한 엘리먼트 레퍼런스 선언
+  const mapColumnRef = useRef(null);
+
   // 로컬 스토리지에서 기존 로그인된 사용자 정보 가져오기
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -70,40 +110,6 @@ function App() {
     alert("로그아웃되었습니다.");
   };
 
-  // 💡 [핵심 로직] TravelMap 내부에 심어줄 진짜 클릭 핸들러 컴포넌트 정의
-  const MapClickHandler = () => {
-    useMapEvents({
-      click: (e) => {
-        const { lat, lng } = e.latlng;
-        console.log(`🎯 지도 클릭됨: 위도 ${lat}, 경도 ${lng}`);
-
-        // 수정 중이 아닐 때만 작동하도록 방어 코드 설정 (선택)
-        if (isEditingId) {
-          if (
-            !window.confirm(
-              "현재 수정 중인 내용이 있습니다. 신규 등록으로 전환할까요?",
-            )
-          ) {
-            return;
-          }
-          setIsEditingId(null); // 수정 모드 해제
-        }
-
-        // 1. 클릭한 좌표를 소수점 6자리까지 예쁘게 잘라서 폼 데이터에 세팅
-        setFormData((prev) => ({
-          ...prev,
-          lat: lat.toFixed(6),
-          lng: lng.toFixed(6),
-          locationName: "", // 새로운 장소 지정을 위해 비워주기
-        }));
-
-        // 2. 숨겨져 있던 신규 추가 폼(TravelForm)을 화면에 띄움
-        setIsAddingNew(true);
-      },
-    });
-    return null;
-  };
-
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
@@ -117,6 +123,16 @@ function App() {
     fetchTravels();
   }, []);
 
+  // 💡 리스트 카드를 클릭하여 activeEntryId가 유효하게 바뀔 때, 화면이 좁은 상태라면 지도로 자동 스크롤
+  useEffect(() => {
+    if (window.innerWidth <= 1200 && activeEntryId && mapColumnRef.current) {
+      mapColumnRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [activeEntryId]);
+
   const handleEdit = (entry, e) => {
     e.stopPropagation();
 
@@ -125,8 +141,8 @@ function App() {
       locationName: entry.locationName,
       date: entry.date,
       content: entry.content,
-      lat: entry.lat.toString(),
-      lng: entry.lng.toString(),
+      lat: (entry.lat || entry.latitude || "").toString(),
+      lng: (entry.lng || entry.longitude || "").toString(),
       visits: entry.visits,
       image: entry.image,
       region: entry.region,
@@ -145,8 +161,11 @@ function App() {
     }
   };
 
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setIsAiLoading(true);
 
     const payload = {
       title: formData.title,
@@ -160,22 +179,27 @@ function App() {
       region: formData.region,
     };
 
-    if (isEditingId) {
-      await updateTravel(isEditingId, payload);
-    } else {
-      await createTravel(payload);
-    }
+    try {
+      if (isEditingId) {
+        await updateTravel(isEditingId, payload);
+      } else {
+        await createTravel(payload);
+      }
 
-    setIsAddingNew(false);
-    setIsEditingId(null);
-    await fetchTravels();
+      setIsAddingNew(false);
+      setIsEditingId(null);
+      await fetchTravels();
+    } catch (error) {
+      console.error("발자취 저장 중 오류 발생:", error);
+      alert("저장에 실패했습니다. AI 로컬 서버 상태를 확인해 주세요.");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
-  // L.icon 대신 HTML/CSS를 사용할 수 있는 L.divIcon으로 변경합니다.
   const getCustomMarkerIcon = (entry) => {
-    // 만약 entry별로 스타일을 다르게 주고 싶다면 entry.visits 등을 활용할 수 있습니다.
     return L.divIcon({
-      className: "custom-travel-marker", // CSS에서 제어할 수 있도록 클래스 부여
+      className: "custom-travel-marker",
       html: `
         <div class="marker-pin-wrapper">
           <div class="marker-pulse"></div>
@@ -187,11 +211,13 @@ function App() {
           </div>
         </div>
       `,
-      iconSize: [40, 40], // 마커의 전체 크기 [가로, 세로]
-      iconAnchor: [20, 40], // 마커 핀의 꼭짓점이 정확히 좌표를 가리키도록 설정 (가로 절반, 세로 끝)
-      popupAnchor: [0, -40], // 팝업창이 마커 바로 위에 예쁘게 뜨도록 설정
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [0, -40],
     });
   };
+
+  const [activeTab, setActiveTab] = useState("list");
 
   return (
     <div className="app-container">
@@ -201,41 +227,60 @@ function App() {
         user={currentUser}
         onAuthClick={() => setIsSignUpOpen(true)}
         onLogout={handleLogout}
+        activeTab={activeTab} // 👈 추가
+        setActiveTab={setActiveTab} // 👈 추가
       />
 
-        <div className="dashboard-grid">
-          <div className="left-column">
-            <TravelList
-              entries={entries}
-              setActiveEntryId={setActiveEntryId}
-              handleEdit={handleEdit}
-              handleDelete={handleDelete}
-            />
-          </div>
-
-          <div className="right-column">
-            <TravelMap
-              entries={entries}
-              mapCenter={[37.5665, 126.978]} // 임시 고정값
-              mapZoom={13}
-              theme={theme}
-              activeEntryId={activeEntryId}
-              setActiveEntryId={setActiveEntryId}
-              getCustomMarkerIcon={getCustomMarkerIcon}
-              MapClickHandler={MapClickHandler}
-            />
-          </div>
+      <div className={`dashboard-grid view-${activeTab}`}>
+        {/* 1열: 발자취 리스트 영역 */}
+        <div className="left-column">
+          <TravelList
+            entries={entries}
+            activeEntryId={activeEntryId}
+            setActiveEntryId={setActiveEntryId}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
         </div>
 
+        {/* 2열: 리플릿 지도 영역 (ref 연결) */}
+        <div className="right-column" ref={mapColumnRef}>
+          <TravelMap
+            entries={entries}
+            mapCenter={[37.5665, 126.978]}
+            mapZoom={13}
+            theme={theme}
+            activeEntryId={activeEntryId}
+            setActiveEntryId={setActiveEntryId}
+            getCustomMarkerIcon={getCustomMarkerIcon}
+            activeTab={activeTab}
+            MapClickHandler={() => (
+              <MapClickHandler
+                isEditingId={isEditingId}
+                setIsEditingId={setIsEditingId}
+                setFormData={setFormData}
+                setIsAddingNew={setIsAddingNew}
+              />
+            )}
+          />
+        </div>
+
+        {/* 3열: Ollama 대화형 채팅 영역 추가 */}
+        <div className="chat-column">
+          <TravelAiChat />
+        </div>
+      </div>
+
       <Modal
-        open={isAddingNew || !!isEditingId} // 신규 등록 중이거나, 수정 중인 ID가 있을 때 열림
-        title={isEditingId ? "발자취 수정하기" : "새 발자취 추가"} // 상황에 맞는 타이틀 지정
+        open={isAddingNew || !!isEditingId}
+        title={isEditingId ? "발자취 수정하기" : "새 발자취 추가"}
         onClose={() => {
-          setIsAddingNew(false);
-          setIsEditingId(null);
+          if (!isAiLoading) {
+            setIsAddingNew(false);
+            setIsEditingId(null);
+          }
         }}
       >
-        {/* 모달 body에 쏙 들어갈 폼 컴포넌트 */}
         <TravelForm
           formData={formData}
           setFormData={setFormData}
@@ -245,8 +290,10 @@ function App() {
           handleSubmit={handleFormSubmit}
           fileInputRef={fileInputRef}
           exifStatus={exifStatus}
+          isAiLoading={isAiLoading}
         />
       </Modal>
+
       <Modal
         open={isSignUpOpen}
         title="로그인 및 회원가입"
