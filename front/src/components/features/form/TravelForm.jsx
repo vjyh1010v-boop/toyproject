@@ -10,6 +10,7 @@ export default function TravelForm({
   fileInputRef,
   handlePhotoUpload,
   exifStatus,
+  isAiLoading, // 💡 App.jsx에서 넘겨준 AI 로딩 상태 받아오기
 }) {
   return (
     <form onSubmit={handleSubmit} className="form-grid">
@@ -56,7 +57,7 @@ export default function TravelForm({
         />
       </div>
 
-      {/* 위도 / 경도 필드 */}
+      {/* 위도 필드 */}
       <div className="form-group">
         <label className="form-label">위도 (Latitude)</label>
         <input
@@ -70,6 +71,7 @@ export default function TravelForm({
         />
       </div>
 
+      {/* 경도 필드 */}
       <div className="form-group">
         <label className="form-label">경도 (Longitude)</label>
         <input
@@ -96,11 +98,12 @@ export default function TravelForm({
         />
       </div>
 
-      {/* 하단 제어 버튼 */}
+      {/* 하단 제어 버튼 (AI 로딩 유기적 연동) */}
       <div className="form-actions full-width">
         <button
           type="button"
           className="btn btn-secondary"
+          disabled={isAiLoading} // 👈 AI 연산 중에는 취소 방지
           onClick={() => {
             setIsAddingNew(false);
             setIsEditingId(null);
@@ -108,8 +111,28 @@ export default function TravelForm({
         >
           취소
         </button>
-        <button type="submit" className="btn btn-primary">
-          {isEditingId ? "수정 완료" : "발자취 남기기"}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={isAiLoading} // 👈 AI 연산 중 중복 클릭 방지
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            backgroundColor: isAiLoading ? "#8b5cf6" : undefined,
+            color: isAiLoading ? "#ffffff" : undefined,
+          }}
+        >
+          {isAiLoading ? (
+            <>
+              <span className="ai-spinner">⏳</span> ✨ Gemma 4 분석 중...
+            </>
+          ) : isEditingId ? (
+            "수정 완료"
+          ) : (
+            "발자취 남기기"
+          )}
         </button>
       </div>
     </form>
