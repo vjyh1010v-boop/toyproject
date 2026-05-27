@@ -4,7 +4,7 @@ import Header from "./components/features/header/Header";
 import TravelForm from "./components/features/form/TravelForm";
 import TravelList from "./components/features/list/TravelList";
 import TravelMap from "./components/features/map/TravelMap";
-
+import SignUp from "./components/features/auth/SignUp";
 import Modal from "./components/ui/Modal";
 
 import { useMapEvents } from "react-leaflet";
@@ -29,6 +29,10 @@ function App() {
   const [filterRegion, setFilterRegion] = useState("All");
   const [theme, setTheme] = useState("dark");
 
+  // Authentication State
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Form State
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [isEditingId, setIsEditingId] = useState(null);
@@ -46,6 +50,25 @@ function App() {
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef(null);
+
+  // 로컬 스토리지에서 기존 로그인된 사용자 정보 가져오기
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    localStorage.setItem("user", JSON.stringify(user));
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem("user");
+    alert("로그아웃되었습니다.");
+  };
 
   // 💡 [핵심 로직] TravelMap 내부에 심어줄 진짜 클릭 핸들러 컴포넌트 정의
   const MapClickHandler = () => {
@@ -172,7 +195,13 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header theme={theme} setTheme={setTheme} />
+      <Header
+        theme={theme}
+        setTheme={setTheme}
+        user={currentUser}
+        onAuthClick={() => setIsSignUpOpen(true)}
+        onLogout={handleLogout}
+      />
 
       <div className="dashboard-grid">
         <div className="left-column">
@@ -216,6 +245,16 @@ function App() {
           handleSubmit={handleFormSubmit}
           fileInputRef={fileInputRef}
           exifStatus={exifStatus}
+        />
+      </Modal>
+      <Modal
+        open={isSignUpOpen}
+        title="로그인 및 회원가입"
+        onClose={() => setIsSignUpOpen(false)}
+      >
+        <SignUp
+          onLoginSuccess={handleLoginSuccess}
+          onClose={() => setIsSignUpOpen(false)}
         />
       </Modal>
     </div>
