@@ -11,41 +11,34 @@ import "./TravelMap.css";
 function ActualMapUpdater({ activeEntryId, entries, activeTab }) {
   const map = useMap();
 
+  // 1. 탭 전환 시 강제로 지도 크기 재계산 (화면 로딩/전환 이슈 해결)
   useEffect(() => {
-    // 💡 변경: activeTab이 무엇이든 상관없이 움직이도록 방어 로직 제거!
+    // 탭이 바뀔 때 지도가 화면에 나타나면, 브라우저가 레이아웃을 잡을 시간을 0.1초 줍니다.
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [activeTab, map]);
+
+  // 2. 기존 좌표 이동 로직
+  useEffect(() => {
     if (!activeEntryId || !entries || entries.length === 0) return;
 
     const currentEntry = entries.find(
-      (entry) => String(entry.id) === String(activeEntryId),
+      (e) => String(e.id) === String(activeEntryId),
     );
-
     if (currentEntry) {
-      const rawLat = currentEntry.latitude || currentEntry.lat;
-      const rawLng = currentEntry.longitude || currentEntry.lng;
-      const lat = parseFloat(rawLat);
-      const lng = parseFloat(rawLng);
+      const lat = parseFloat(currentEntry.latitude || currentEntry.lat);
+      const lng = parseFloat(currentEntry.longitude || currentEntry.lng);
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        // 💡 화면 밖이어도 좌표 이동은 수행됨
+        // 이동 전에도 한 번 더 확인
         map.invalidateSize();
-
-        const timer = setTimeout(() => {
-          try {
-            // 💡 여기 있던 if (activeTab === "map") 조건문을 제거합니다.
-            // 그러면 화면이 보이든 안 보이든 무조건 좌표로 이동합니다.
-            map.flyTo([lat, lng], 14, {
-              animate: true,
-              duration: 1.5,
-            });
-          } catch (error) {
-            console.error("Leaflet flyTo 에러 방어:", error);
-          }
-        }, 100);
-
-        return () => clearTimeout(timer);
+        map.flyTo([lat, lng], 14, { animate: true, duration: 1.5 });
       }
     }
-  }, [activeEntryId, entries, map]); // 💡 activeTab도 의존성 배열에서 빼도 무방합니다.
+  }, [activeEntryId, entries, map]);
 
   return null;
 }

@@ -83,6 +83,7 @@ function App() {
     visits: 1,
     image: "",
     region: "서울",
+    useAi: false,
   });
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
@@ -177,6 +178,7 @@ function App() {
       visits: parseInt(formData.visits) || 1,
       imageUrl: formData.image,
       region: formData.region,
+      useAi: formData.useAi,
     };
 
     try {

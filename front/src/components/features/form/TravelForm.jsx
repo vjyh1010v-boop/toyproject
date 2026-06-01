@@ -98,6 +98,37 @@ export default function TravelForm({
         />
       </div>
 
+      {/* 💡 [추가] AI 토글 체크박스 */}
+      <div
+        className="ai-toggle-group"
+        style={{
+          marginTop: "10px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <input
+          type="checkbox"
+          id="useAi"
+          checked={formData.useAi || false}
+          onChange={(e) =>
+            setFormData({ ...formData, useAi: e.target.checked })
+          }
+          style={{ cursor: "pointer" }}
+        />
+        <label
+          htmlFor="useAi"
+          style={{
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+          }}
+        >
+          ✨ AI에게 태그 생성 및 내용 요약을 맡길게요
+        </label>
+      </div>
+
       {/* 하단 제어 버튼 (AI 로딩 유기적 연동) */}
       <div className="form-actions full-width">
         <button

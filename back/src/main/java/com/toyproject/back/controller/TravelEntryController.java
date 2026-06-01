@@ -15,8 +15,7 @@ import com.toyproject.back.dto.TravelResponseDto;
 import com.toyproject.back.dto.TravelAiResponse; // 💡 AI 응답 DTO 임포트
 import com.toyproject.back.entity.TravelEntry;
 import com.toyproject.back.repository.TravelEntryRepository;
-import com.toyproject.back.service.TravelService; // 💡 AI 전용 서비스 임포트
-
+import com.toyproject.back.service.AiService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -24,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class TravelEntryController {
 
     private final TravelEntryRepository travelEntryRepository;
-    private final TravelService travelService; // 💡 1. 든든한 AI 서비스 주입 받기
+    private final AiService aiService;
 
     @GetMapping("/api/travels")
     public List<TravelEntry> getTravels() {
@@ -49,7 +48,7 @@ public class TravelEntryController {
 
         // 💡 2. DB 저장 전에 내용이 있다면 Gemma 4를 깨워 분석합니다.
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = travelService.generateAiAnalysis(request.getTitle(), request.getContent());
+            TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
             travelEntry.setAiSummary(aiResponse.getSummary());
             travelEntry.setTags(aiResponse.getTags());
         }
@@ -100,7 +99,7 @@ public class TravelEntryController {
 
         // 💡 4. 글을 수정할 때도 추억 내용이 바뀌었다면 AI 분석을 새로 갱신합니다.
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = travelService.generateAiAnalysis(request.getTitle(), request.getContent());
+            TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
             entry.setAiSummary(aiResponse.getSummary());
             entry.setTags(aiResponse.getTags());
         }
@@ -131,9 +130,9 @@ public class TravelEntryController {
         // 프론트엔드에서 보낸 질문 추출
         String userMessage = request.get("message");
         
-        // 💡 기존에 요약할 때 사용하던 travelService에 일반 대화용 메서드를 하나 요청합니다.
-        // (메서드명은 프로젝트 상황에 맞게 travelService 내부를 가볍게 수정하거나 구현해 주시면 됩니다!)
-        String aiReply = travelService.generateAiChat(userMessage);
+        // 💡 기존에 요약할 때 사용하던 aiService에 일반 대화용 메서드를 하나 요청합니다.
+        // (메서드명은 프로젝트 상황에 맞게 aiService 내부를 가볍게 수정하거나 구현해 주시면 됩니다!)
+        String aiReply = aiService.generateAiChat(userMessage);
         
         // 프론트엔드가 요구하는 { "reply": "답변 내용" } 맵 구조로 리턴
         java.util.Map<String, String> response = new java.util.HashMap<>();
