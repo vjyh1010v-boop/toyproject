@@ -6,10 +6,7 @@ import com.toyproject.back.repository.TravelEntryRepository;
 
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
