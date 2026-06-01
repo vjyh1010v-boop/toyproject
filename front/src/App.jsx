@@ -83,6 +83,7 @@ function App() {
     visits: 1,
     image: "",
     region: "서울",
+    useAi: false,
   });
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
@@ -165,6 +166,9 @@ function App() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+
+    const isAiEnabled = formData.useAi;
+
     setIsAiLoading(true);
 
     const payload = {
@@ -177,6 +181,7 @@ function App() {
       visits: parseInt(formData.visits) || 1,
       imageUrl: formData.image,
       region: formData.region,
+      useAi: isAiEnabled,
     };
 
     try {

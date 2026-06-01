@@ -1,16 +1,22 @@
 package com.toyproject.back.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.ArrayList; // 💡 추가
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Getter
-@Setter // 👈 전체 Setter는 유지하되, tags만 아래에서 따로 커스텀합니다.
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class TravelEntry {
 
     @Id
@@ -52,6 +58,7 @@ public class TravelEntry {
         joinColumns = @JoinColumn(name = "travel_entry_id")
     )
     @Column(name = "tag_name")
+    @Builder.Default
     private List<String> tags = new ArrayList<>(); // 💡 기본값을 가변 빈 리스트로 초기화해두면 더 안전합니다.
 
     /**
