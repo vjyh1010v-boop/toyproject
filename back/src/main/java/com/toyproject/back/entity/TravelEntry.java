@@ -5,11 +5,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList; // 💡 추가
 import java.util.List;
 
 @Entity
 @Getter
-@Setter
+@Setter // 👈 전체 Setter는 유지하되, tags만 아래에서 따로 커스텀합니다.
 public class TravelEntry {
 
     @Id
@@ -25,36 +26,44 @@ public class TravelEntry {
     private Long id;
 
     private String title;
-
     private String locationName;
-
     private LocalDate travelDate;
 
     @Column(length = 2000)
     private String content;
 
     private Double latitude;
-
     private Double longitude;
-
     private Integer visits;
-
     private String imageUrl;
-
     private String region;
 
-    // 💡 [AI 피처 추가] 1. AI 한 줄 요약 필드 (글자 수 제한을 넉넉히 TEXT로 설정)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Lob
     @Column(name = "AI_SUMMARY")
     private String aiSummary;
 
-    // 💡 [AI 피처 추가] 2. AI 추천 해시태그 목록 필드
-    // JPA에서 간단한 문자열 리스트를 별도 매핑 테이블로 관리해 주는 어노테이션입니다.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "travel_tags", 
         joinColumns = @JoinColumn(name = "travel_entry_id")
     )
     @Column(name = "tag_name")
-    private List<String> tags;
+    private List<String> tags = new ArrayList<>(); // 💡 기본값을 가변 빈 리스트로 초기화해두면 더 안전합니다.
+
+    /**
+     * 💡 [중요] 외부에서 들어오는 수정 불가능한 리스트 방어용 커스텀 Setter
+     * Lombok이 만드는 기본 setter 대신 이 메서드가 작동하여 에러를 원천 차단합니다.
+     */
+    public void setTags(List<String> tags) {
+        if (tags == null) {
+            this.tags = new ArrayList<>();
+        } else {
+            // 들어온 리스트가 무엇이든 새 ArrayList로 복사하여 가변성을 확보합니다.
+            this.tags = new ArrayList<>(tags);
+        }
+    }
 }
