@@ -26,4 +26,21 @@ public class TravelRequestDto {
     private String imageUrl;
 
     private String region;
+
+    private boolean useAi;
+
+    public TravelEntryDto toDto() {
+        return TravelEntryDto.builder()
+                .title(this.title)
+                .locationName(this.locationName)
+                .content(this.content)
+                .travelDate(this.travelDate)
+                .latitude(this.latitude)
+                .longitude(this.longitude)
+                .visits(this.visits)
+                .imageUrl(this.imageUrl)
+                .region(this.region)
+                .useAi(this.useAi) // AI 사용 여부 포함
+                .build();
+    }
 }

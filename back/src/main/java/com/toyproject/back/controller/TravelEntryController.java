@@ -5,12 +5,13 @@ import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import com.toyproject.back.dto.TravelRequestDto;
 import com.toyproject.back.dto.TravelResponseDto;
-import com.toyproject.back.dto.TravelAiResponse;
+import com.toyproject.back.dto.TravelAiResponse; // 💡 AI 응답 DTO 임포트
 import com.toyproject.back.entity.TravelEntry;
 import com.toyproject.back.entity.User;
 import com.toyproject.back.repository.TravelEntryRepository;
-import com.toyproject.back.repository.UserRepository; // 💡 유저 조회를 위해 주입 필요
-import com.toyproject.back.service.TravelService;
+import com.toyproject.back.repository.UserRepository;
+import com.toyproject.back.service.AiService;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -18,8 +19,8 @@ import lombok.RequiredArgsConstructor;
 public class TravelEntryController {
 
     private final TravelEntryRepository travelEntryRepository;
+    private final AiService aiService;
     private final UserRepository userRepository; // 💡 유저 확인용 리포지토리 추가
-    private final TravelService travelService;
 
     /**
      * 🔍 1. 조회: 로그인한 사용자의 글만 가져오기
@@ -60,14 +61,23 @@ public class TravelEntryController {
         // 💡 [중요] 이 게시글의 주인(작성자)이 누구인지 세팅합니다.
         travelEntry.setUser(user); 
 
+        // 💡 2. DB 저장 전에 내용이 있다면 Gemma 4를 깨워 분석합니다.
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = travelService.generateAiAnalysis(request.getTitle(), request.getContent());
-            travelEntry.setAiSummary(aiResponse.getSummary());
-            travelEntry.setTags(aiResponse.getTags());
+            // 💡 조건 추가: AI를 사용한다고 체크한 경우에만 실행
+            if (request.isUseAi()) {
+                TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
+                travelEntry.setAiSummary(aiResponse.getSummary());
+                travelEntry.setTags(aiResponse.getTags());
+            } else {
+                // AI를 안 쓰면 기본값 처리 (필요시)
+                travelEntry.setAiSummary("직접 작성한 기록");
+                travelEntry.setTags(new ArrayList<>());
+            }
         }
 
         TravelEntry saved = travelEntryRepository.save(travelEntry);
 
+        // 💡 3. 리액트가 응답을 즉시 받아 그릴 수 있도록 빌더에 AI 결과를 꽂아줍니다.
         return TravelResponseDto.builder()
                 .id(saved.getId())
                 .title(saved.getTitle())
@@ -129,20 +139,25 @@ public class TravelEntryController {
         entry.setImageUrl(request.getImageUrl());
         entry.setRegion(request.getRegion());
 
+        // 기존 로직
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = travelService.generateAiAnalysis(request.getTitle(), request.getContent());
-            entry.setAiSummary(aiResponse.getSummary());
-            
-            // 💡 [여기 수정!] 수정 불가능한 리스트를 가변 리스트(ArrayList)로 변환하여 넣어줍니다.
-            if (aiResponse.getTags() != null) {
-                entry.setTags(new ArrayList<>(aiResponse.getTags()));
+            // 💡 조건 추가
+            if (request.isUseAi()) {
+                TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
+                entry.setAiSummary(aiResponse.getSummary());
+                if (aiResponse.getTags() != null) {
+                    entry.setTags(new ArrayList<>(aiResponse.getTags()));
+                }
             } else {
+                // AI를 안 쓰면 기존 내용을 유지하거나 초기화
+                entry.setAiSummary("직접 작성한 기록");
                 entry.setTags(new ArrayList<>());
             }
         }
 
         TravelEntry saved = travelEntryRepository.save(entry);
 
+        // 💡 5. 수정 완료 응답객체에도 AI 결과를 얹어줍니다.
         return TravelResponseDto.builder()
                 .id(saved.getId())
                 .title(saved.getTitle())
@@ -164,7 +179,7 @@ public class TravelEntryController {
         @RequestBody java.util.Map<String, String> request
     ) {
         String userMessage = request.get("message");
-        String aiReply = travelService.generateAiChat(userMessage);
+        String aiReply = aiService.generateAiChat(userMessage);
         
         java.util.Map<String, String> response = new java.util.HashMap<>();
         response.put("reply", aiReply);

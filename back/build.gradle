@@ -25,7 +25,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-    implementation 'org.springframework.ai:spring-ai-ollama-spring-boot-starter:1.0.0-M5'
+    implementation 'org.springframework.ai:spring-ai-ollama-spring-boot-starter:1.0.0-M6'
 
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 
