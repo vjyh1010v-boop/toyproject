@@ -166,6 +166,9 @@ function App() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+
+    const isAiEnabled = formData.useAi;
+
     setIsAiLoading(true);
 
     const payload = {
@@ -178,7 +181,7 @@ function App() {
       visits: parseInt(formData.visits) || 1,
       imageUrl: formData.image,
       region: formData.region,
-      useAi: formData.useAi,
+      useAi: isAiEnabled,
     };
 
     try {

@@ -63,9 +63,16 @@ public class TravelEntryController {
 
         // 💡 2. DB 저장 전에 내용이 있다면 Gemma 4를 깨워 분석합니다.
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
-            travelEntry.setAiSummary(aiResponse.getSummary());
-            travelEntry.setTags(aiResponse.getTags());
+            // 💡 조건 추가: AI를 사용한다고 체크한 경우에만 실행
+            if (request.isUseAi()) {
+                TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
+                travelEntry.setAiSummary(aiResponse.getSummary());
+                travelEntry.setTags(aiResponse.getTags());
+            } else {
+                // AI를 안 쓰면 기본값 처리 (필요시)
+                travelEntry.setAiSummary("직접 작성한 기록");
+                travelEntry.setTags(new ArrayList<>());
+            }
         }
 
         TravelEntry saved = travelEntryRepository.save(travelEntry);
@@ -132,14 +139,18 @@ public class TravelEntryController {
         entry.setImageUrl(request.getImageUrl());
         entry.setRegion(request.getRegion());
 
+        // 기존 로직
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-            TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
-            entry.setAiSummary(aiResponse.getSummary());
-            
-            // 💡 [여기 수정!] 수정 불가능한 리스트를 가변 리스트(ArrayList)로 변환하여 넣어줍니다.
-            if (aiResponse.getTags() != null) {
-                entry.setTags(new ArrayList<>(aiResponse.getTags()));
+            // 💡 조건 추가
+            if (request.isUseAi()) {
+                TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
+                entry.setAiSummary(aiResponse.getSummary());
+                if (aiResponse.getTags() != null) {
+                    entry.setTags(new ArrayList<>(aiResponse.getTags()));
+                }
             } else {
+                // AI를 안 쓰면 기존 내용을 유지하거나 초기화
+                entry.setAiSummary("직접 작성한 기록");
                 entry.setTags(new ArrayList<>());
             }
         }
