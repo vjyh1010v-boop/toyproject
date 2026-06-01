@@ -33,6 +33,11 @@ function SignUp({ onLoginSuccess, onClose }) {
                 setMessage('로그인에 성공했습니다!');
                 setIsError(false);
 
+                // 🌟 [보안 권한 추가] 로그인 성공 시 브라우저 스토리지에 유저 아이디 저장!
+                if (response.data && response.data.username) {
+                localStorage.setItem('username', response.data.username);
+                }
+
                 // 상위 컴포넌트에 유저 정보 전달
                 if (onLoginSuccess) {
                     onLoginSuccess(response.data);

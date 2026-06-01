@@ -38,7 +38,7 @@ function ActualMapUpdater({ activeEntryId, entries, activeTab }) {
         map.flyTo([lat, lng], 14, { animate: true, duration: 1.5 });
       }
     }
-  }, [activeEntryId, entries, map]);
+  }, [activeEntryId, entries, map]); // 💡 activeTab도 의존성 배열에서 빼도 무방합니다.
 
   return null;
 }
