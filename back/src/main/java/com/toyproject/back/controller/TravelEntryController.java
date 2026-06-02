@@ -32,13 +32,34 @@ public class TravelEntryController {
      * 🔍 1. 조회: 로그인한 사용자의 글만 가져오기
      */
     @GetMapping("/api/travels")
-    public List<TravelEntry> getTravels(
-        @RequestHeader("X-USER-USERNAME") String username
+    public List<TravelResponseDto> getTravels( // 💡 [수정] 프론트엔드가 DTO 안의 tags를 명확히 읽을 수 있도록 리턴 타입을 DTO 리스트로 보완합니다.
+        @RequestHeader("X-USER-USERNAME") String username 
     ) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("인증되지 않은 사용자입니다."));
         
-        return travelEntryRepository.findByUser(user);
+        List<TravelEntry> entries = travelEntryRepository.findByUser(user);
+        List<TravelResponseDto> dtoList = new ArrayList<>();
+
+        // 💡 JPA 지연 로딩 프록시를 깨우고 완벽하게 조립해서 프론트엔드로 전달합니다.
+        for (TravelEntry saved : entries) {
+            TravelResponseDto dto = TravelResponseDto.builder()
+                    .id(saved.getId())
+                    .title(saved.getTitle())
+                    .locationName(saved.getLocationName())
+                    .travelDate(saved.getTravelDate())
+                    .content(saved.getContent())
+                    .latitude(saved.getLatitude())
+                    .longitude(saved.getLongitude())
+                    .visits(saved.getVisits())
+                    .imageUrl(saved.getImageUrl())
+                    .region(saved.getRegion())
+                    .aiSummary(saved.getAiSummary())
+                    .tags(saved.getTags()) // 🌟 오라클에 저장되어 있던 내 태그가 화면으로 정상 공급됩니다.
+                    .build();
+            dtoList.add(dto);
+        }
+        return dtoList;
     }
 
     /**
@@ -62,6 +83,10 @@ public class TravelEntryController {
         travelEntry.setVisits(request.getVisits());
         travelEntry.setRegion(request.getRegion());
         travelEntry.setTravelDate(request.getTravelDate());
+        
+        // 🌟 [최초 주입] 사용자가 프론트엔드에서 직접 입력한 태그를 먼저 탑재합니다.
+        travelEntry.setTags(request.getTags() != null ? new ArrayList<>(request.getTags()) : new ArrayList<>());
+        
         travelEntry.setUser(user); 
 
         // 📍 파일 업로드 서비스 적용
@@ -77,10 +102,17 @@ public class TravelEntryController {
             if (request.isUseAi()) {
                 TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
                 travelEntry.setAiSummary(aiResponse.getSummary());
-                travelEntry.setTags(aiResponse.getTags());
+                
+                // 🌟 [보완] AI 태그를 생성한 경우, 사용자가 기존에 작성한 태그 리스트에 결합(addAll)해 줍니다.
+                if (aiResponse.getTags() != null) {
+                    List<String> combinedTags = travelEntry.getTags();
+                    combinedTags.addAll(aiResponse.getTags());
+                    travelEntry.setTags(combinedTags);
+                }
             } else {
                 travelEntry.setAiSummary("직접 작성한 기록");
-                travelEntry.setTags(new ArrayList<>());
+                // 🛑 [기존 버그 수정] 기존에는 여기서 travelEntry.setTags(new ArrayList<>()); 로 초기화해버려 
+                // 사용자가 열심히 작성한 태그가 삭제되었습니다. 이 부분을 과감히 삭제하여 사용자의 태그를 유지합니다!
             }
         }
 
@@ -107,7 +139,7 @@ public class TravelEntryController {
      */
     @DeleteMapping("/api/travels/{id}")
     public void deleteTravel(
-        @RequestHeader("X-USER-USERNAME") String username,
+        @RequestHeader("X-USER-USERNAME") String username, 
         @PathVariable("id") Long id
     ) {
         TravelEntry entry = travelEntryRepository.findById(id)
@@ -145,6 +177,9 @@ public class TravelEntryController {
         entry.setLongitude(request.getLongitude());
         entry.setVisits(request.getVisits());
         entry.setRegion(request.getRegion());
+        
+        // 🌟 [수정 반영] 프론트에서 수정되어 들어온 새 직접 태그 목록을 반영합니다.
+        entry.setTags(request.getTags() != null ? new ArrayList<>(request.getTags()) : new ArrayList<>());
 
         // 📍 수정 시 새로운 사진이 들어오면 덮어쓰고, 없으면 프론트에서 넘어온 기존 경로(또는 null)를 유지합니다.
         if (file != null && !file.isEmpty()) {
@@ -160,11 +195,14 @@ public class TravelEntryController {
                 TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
                 entry.setAiSummary(aiResponse.getSummary());
                 if (aiResponse.getTags() != null) {
-                    entry.setTags(new ArrayList<>(aiResponse.getTags()));
+                    // AI 태그가 생성되었다면 사용자가 수정한 태그에 함께 이어붙여 줍니다.
+                    List<String> combinedTags = entry.getTags();
+                    combinedTags.addAll(aiResponse.getTags());
+                    entry.setTags(combinedTags);
                 }
             } else {
                 entry.setAiSummary("직접 작성한 기록");
-                entry.setTags(new ArrayList<>());
+                // 🛑 [기존 버그 수정] 수정할 때도 AI를 체크 안 하면 기존 작성 태그를 통째로 지워버리던 코드를 걷어내어 데이터를 보존합니다.
             }
         }
 

@@ -22,4 +22,12 @@ public class User {
 
     @Column(nullable = false)
     private String name; // 사용자 실제 이름
+
+    // 🌟 [추가] 생년월일 필드 (포맷 예시: YYYY-MM-DD)
+    @Column(name = "birth_date")
+    private String birthDate;
+
+    // 🌟 [추가] 연락처 필드 (포맷 예시: 010-XXXX-XXXX)
+    @Column(name = "phone")
+    private String phone;
 }

@@ -62,8 +62,8 @@ export default function TravelForm({
         {isEditingId ? "발자취 수정" : "새 발자취 추가"}
       </h2>
 
-      {/* 제목 필드 */}
-      <div className="form-group full-width">
+      {/* 💡 제목 필드: full-width 클래스를 제거하여 가로 절반만 차지하게 합니다. */}
+      <div className="form-group">
         <label className="form-label">제목</label>
         <input
           className="form-input"
@@ -71,6 +71,17 @@ export default function TravelForm({
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="여행의 제목을 입력하세요"
           required
+        />
+      </div>
+
+      {/* 🌟 [빨간 네모 칸 위치] 나만의 태그 필드 추가! */}
+      <div className="form-group">
+        <label className="form-label">나만의 태그 (쉼표로 구분)</label>
+        <input
+          className="form-input"
+          value={formData.customTags || ""}
+          onChange={(e) => setFormData({ ...formData, customTags: e.target.value })}
+          placeholder="예: 서울여행, 맛집, 힐링"
         />
       </div>
 

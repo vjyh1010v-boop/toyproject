@@ -10,6 +10,11 @@ function SignUp({ onLoginSuccess, onClose }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+
+    // 🌟 [추가] 새로운 입력 바구니들
+    const [confirmPassword, setConfirmPassword] = useState(''); // 비밀번호 확인용
+    const [birthDate, setBirthDate] = useState('');             // 생년월일용 (YYYY-MM-DD)
+    const [phone, setPhone] = useState('');                     // 연락처용 (010-XXXX-XXXX)
     
     // 메시지 출력 바구니 (성공 또는 에러)
     const [message, setMessage] = useState('');
@@ -61,11 +66,21 @@ function SignUp({ onLoginSuccess, onClose }) {
             }
         } else {
             // 🔒 회원가입 처리
+
+            // 🌟 [추가 방어벽] 비밀번호와 비밀번호 확인이 일치하지 않으면 백엔드로 요청을 보내지 않고 차단!
+            if (password !== confirmPassword) {
+                setIsError(true);
+                setMessage('비밀번호가 일치하지 않습니다. 다시 확인해주세요.');
+                return; // 여기서 함수를 종료시켜 전송을 막습니다.
+            }
+
             try {
                 const response = await axios.post('http://localhost:8080/api/auth/signup', {
                     username: username,
                     password: password,
-                    name: name
+                    name: name,
+                    birthDate: birthDate, // 🌟 추가
+                    phone: phone          // 🌟 추가
                 });
 
                 setMessage(response.data || '회원가입이 완료되었습니다!');
@@ -75,7 +90,10 @@ function SignUp({ onLoginSuccess, onClose }) {
                 setTimeout(() => {
                     setIsLogin(true);
                     setPassword('');
+                    setConfirmPassword(''); // 🌟 추가
                     setName('');
+                    setBirthDate('');       // 🌟 추가
+                    setPhone('');           // 🌟 추가
                     setMessage('가입하신 계정으로 로그인해주세요!');
                 }, 1500);
 
@@ -95,7 +113,10 @@ function SignUp({ onLoginSuccess, onClose }) {
         setMessage('');
         setIsError(false);
         setPassword('');
+        setConfirmPassword(''); // 🌟 추가
         setName('');
+        setBirthDate('');       // 🌟 추가
+        setPhone('');           // 🌟 추가
     };
 
     return (
@@ -139,19 +160,54 @@ function SignUp({ onLoginSuccess, onClose }) {
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
                     style={styles.input}
-                    autoComplete="current-password"
+                    autoComplete="current-password" // 신규 가입이므로 new-password 권장
                 />
+                {/* 🌟 [추가] 회원가입 모드일 때만 보이는 추가 필드들 */}
                 {!isLogin && (
-                    <input 
-                        type="text" 
-                        placeholder="이름 입력" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
-                        required 
-                        style={styles.input}
-                        autoComplete="name"
-                    />
+                    <>
+                        <input 
+                            type="password" 
+                            placeholder="비밀번호 확인" 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)} 
+                            required 
+                            style={styles.input}
+                            autoComplete="new-password"
+                        />
+                        <input 
+                            type="text" 
+                            placeholder="이름 입력" 
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)} 
+                            required 
+                            style={styles.input}
+                            autoComplete="name"
+                        />
+                        <input 
+                            type="text" // 💡 일반 텍스트 타입으로 변경하여 달력 아이콘을 제거합니다.
+                            inputMode="numeric" // 💡 모바일 기기 등에서 숫자가 먼저 뜨도록 유도합니다.
+                            maxLength={8} // 💡 8자리 이상 입력되지 않도록 제한을 걸어줍니다.
+                            placeholder="생년월일 8자리 (예: 2001231)" // 💡 원하시는 힌트 텍스트로 변경!
+                            value={birthDate} 
+                            onChange={(e) => {
+                                // 💡 오직 숫자만 입력받을 수 있도록 필터링하는 안전장치입니다.
+                                const onlyNumber = e.target.value.replace(/[^0-9]/g, '');
+                                setBirthDate(onlyNumber);
+                            }} 
+                            required 
+                            style={styles.input} // 💡 다른 input창들과 완벽히 일치하는 스타일 적용
+                        />
+                        <input 
+                            type="tel" 
+                            placeholder="연락처 입력 (예: 010-1234-5678)" 
+                            value={phone} 
+                            onChange={(e) => setPhone(e.target.value)} 
+                            required 
+                            style={styles.input}
+                        />
+                    </>
                 )}
+                
                 <button type="submit" style={styles.button}>
                     {isLogin ? '로그인' : '가입하기'}
                 </button>
