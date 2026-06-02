@@ -5,15 +5,11 @@ import { Layers, RefreshCcw } from "lucide-react";
 
 import "./TravelMap.css";
 
-// 지도를 움직여주는 진짜 컴포넌트
-// src/components/features/map/TravelMap.jsx
-
 function ActualMapUpdater({ activeEntryId, entries, activeTab }) {
   const map = useMap();
 
   // 1. 탭 전환 시 강제로 지도 크기 재계산 (화면 로딩/전환 이슈 해결)
   useEffect(() => {
-    // 탭이 바뀔 때 지도가 화면에 나타나면, 브라우저가 레이아웃을 잡을 시간을 0.1초 줍니다.
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 100);
@@ -33,12 +29,11 @@ function ActualMapUpdater({ activeEntryId, entries, activeTab }) {
       const lng = parseFloat(currentEntry.longitude || currentEntry.lng);
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        // 이동 전에도 한 번 더 확인
         map.invalidateSize();
         map.flyTo([lat, lng], 14, { animate: true, duration: 1.5 });
       }
     }
-  }, [activeEntryId, entries, map]); // 💡 activeTab도 의존성 배열에서 빼도 무방합니다.
+  }, [activeEntryId, entries, map]);
 
   return null;
 }
@@ -52,17 +47,15 @@ export default function TravelMap({
   setActiveEntryId,
   MapClickHandler,
   activeEntryId,
-  activeTab = "map", // 기본값 설정으로 PC 버전도 문제없게 대응
+  activeTab = "map",
 }) {
-  // 💡 핵심 방어선 2: 부모(App.jsx)로부터 넘어온 mapCenter가 유효한지 최종 검증합니다.
-  // 만약 NaN이 섞여 들어오거나 올바른 배열이 아니면 서울 중심점 등의 안전한 기본값으로 강제 강제 전환합니다.
   const validCenter =
     Array.isArray(mapCenter) &&
     mapCenter.length === 2 &&
     !isNaN(parseFloat(mapCenter[0])) &&
     !isNaN(parseFloat(mapCenter[1]))
       ? [parseFloat(mapCenter[0]), parseFloat(mapCenter[1])]
-      : [37.5665, 126.978]; // 안전망 기본 좌표 (서울)
+      : [37.5665, 126.978];
 
   const validZoom = isNaN(parseInt(mapZoom)) ? 13 : parseInt(mapZoom);
 
@@ -81,7 +74,6 @@ export default function TravelMap({
         </Button>
       </div>
 
-      {/* 💡 에러 방어 핵심: 유효성이 무조건 검증된 validCenter만 주입합니다. */}
       <MapContainer
         center={validCenter}
         zoom={validZoom}
@@ -122,16 +114,78 @@ export default function TravelMap({
                   click: () => setActiveEntryId(e.id),
                 }}
               >
-                <Popup>
-                  <div className="map-popup-card">
-                    <h4>{e.title}</h4>
-                    <p>{e.locationName}</p>
-                  </div>
-                </Popup>
+                <MarkerPopup entry={e} />{" "}
+                {/* 💡 가독성을 위해 팝업 컴포넌트 분리 */}
               </Marker>
             );
           })}
       </MapContainer>
     </div>
+  );
+}
+
+// 📍 [추가] 팝업 내부 이미지 바인딩 및 엑박 방어 전용 컴포넌트
+function MarkerPopup({ entry }) {
+  return (
+    <Popup>
+      <div
+        className="map-popup-card"
+        style={{ width: "200px", padding: "2px" }}
+      >
+        {/* 📸 이미지가 있을 경우에만 팝업 제일 상단에 렌더링 */}
+        {entry.imageUrl && (
+          <div
+            style={{
+              width: "100%",
+              height: "110px",
+              marginBottom: "8px",
+              overflow: "hidden",
+              borderRadius: "4px",
+            }}
+          >
+            <img
+              src={`http://210.119.14.73:8080${entry.imageUrl}`}
+              alt={entry.title}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+              // 혹시 서버 에러 등으로 이미지가 깨지면 투명하게 숨기는 안전 처리
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          </div>
+        )}
+        <h4 style={{ margin: "0 0 4px 0", fontSize: "0.95rem" }}>
+          {entry.title}
+        </h4>
+        <p
+          style={{
+            margin: "0 0 4px 0",
+            fontSize: "0.85rem",
+            color: "var(--text-secondary)",
+          }}
+        >
+          {entry.locationName}
+        </p>
+
+        {/* 만약 AI 요약 텍스트 필드가 있다면 함께 보여줍니다 */}
+        {entry.aiSummary && (
+          <p
+            style={{
+              margin: "4px 0 0 0",
+              fontSize: "0.75rem",
+              color: "#8b5cf6",
+              lineHeight: "1.3",
+            }}
+          >
+            ✨ {entry.aiSummary}
+          </p>
+        )}
+      </div>
+    </Popup>
   );
 }

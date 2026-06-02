@@ -70,7 +70,7 @@ export default function Header({
           </Button>
         )}
         <Button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
         </Button>
       </div>
     </header>
