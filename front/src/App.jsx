@@ -4,7 +4,7 @@ import Header from "./components/features/header/Header";
 import TravelForm from "./components/features/form/TravelForm";
 import TravelList from "./components/features/list/TravelList";
 import TravelMap from "./components/features/map/TravelMap";
-import TravelAiChat from "./components/features/chat/TravelAiChat"; // 💡 2단계에서 만든 AI 채팅 컴포넌트 임포트
+import TravelAiChat from "./components/features/chat/TravelAiChat"; 
 import SignUp from "./components/features/auth/SignUp";
 import Modal from "./components/ui/Modal";
 
@@ -22,7 +22,6 @@ import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/util.css";
 
-// 💡 MapClickHandler는 App 컴포넌트 바깥 영역에 두어 최적화 상태를 유지합니다.
 const MapClickHandler = ({
   isEditingId,
   setIsEditingId,
@@ -84,12 +83,11 @@ function App() {
     image: "",
     region: "서울",
     useAi: false,
+    customTags: "",
   });
 
   const [exifStatus, setExifStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef(null);
-
-  // 💡 지도가 들어있는 우측 컬럼을 타겟팅하기 위한 엘리먼트 레퍼런스 선언
   const mapColumnRef = useRef(null);
 
   // 로컬 스토리지에서 기존 로그인된 사용자 정보 가져오기
@@ -103,12 +101,17 @@ function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     localStorage.setItem("user", JSON.stringify(user));
+    if (user && user.username) {
+      localStorage.setItem("username", user.username);
+    }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("username"); 
     alert("로그아웃되었습니다.");
+    window.location.reload(); 
   };
 
   useEffect(() => {
@@ -116,15 +119,16 @@ function App() {
   }, [theme]);
 
   const fetchTravels = async () => {
-    const data = await getTravels();
-    setEntries(data);
+    if (localStorage.getItem("username")) {
+      const data = await getTravels();
+      setEntries(data);
+    }
   };
 
   useEffect(() => {
     fetchTravels();
-  }, []);
+  }, [currentUser]); 
 
-  // 💡 리스트 카드를 클릭하여 activeEntryId가 유효하게 바뀔 때, 화면이 좁은 상태라면 지도로 자동 스크롤
   useEffect(() => {
     if (window.innerWidth <= 1200 && activeEntryId && mapColumnRef.current) {
       mapColumnRef.current.scrollIntoView({
@@ -147,6 +151,8 @@ function App() {
       visits: entry.visits,
       image: entry.image,
       region: entry.region,
+      // 기존 배열(List)로 저장되어 있던 태그들을 콤마로 연결된 하나의 문자열로 풀어 인풋창에 넣어줍니다!
+      customTags: entry.tags ? entry.tags.join(", ") : "",
     });
 
     setIsEditingId(entry.id);
@@ -166,10 +172,13 @@ function App() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
     const isAiEnabled = formData.useAi;
-
     setIsAiLoading(true);
+
+    // 🌟 3. 사용자가 쉼표로 분리해서 적은 태그 문자열을 잘라내어 배열로 만듭니다.
+    const userTags = formData.customTags
+      ? formData.customTags.split(",").map(tag => tag.trim()).filter(tag => tag !== "")
+      : [];
 
     const payload = {
       title: formData.title,
@@ -182,6 +191,7 @@ function App() {
       imageUrl: formData.image,
       region: formData.region,
       useAi: isAiEnabled,
+      tags: userTags // 👈 🌟 쪼개진 태그 배열을 페이로드에 탑재하여 서버로 배달합니다!
     };
 
     try {
@@ -193,6 +203,9 @@ function App() {
 
       setIsAddingNew(false);
       setIsEditingId(null);
+
+      // 🌟 추가 센스: 다음 글 작성을 위해 폼 데이터 속의 customTags도 깨끗하게 청소해 줍니다.
+      setFormData(prev => ({ ...prev, customTags: "" }));
       await fetchTravels();
     } catch (error) {
       console.error("발자취 저장 중 오류 발생:", error);
@@ -225,17 +238,31 @@ function App() {
   const [activeTab, setActiveTab] = useState("list");
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ position: "relative", minHeight: "100vh" }}>
+      {/* 🟢 상단 헤더: 비로그인 상태여도 늘 선명하게 고정 노출 */}
       <Header
         theme={theme}
         setTheme={setTheme}
         user={currentUser}
         onAuthClick={() => setIsSignUpOpen(true)}
         onLogout={handleLogout}
-        activeTab={activeTab} // 👈 추가
-        setActiveTab={setActiveTab} // 👈 추가
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
       />
 
+      {/* 🛑 로그인이 안 되어 있을 때만 렌더링되는 블러 가림막 돔(DOM) */}
+      {!currentUser && (
+        <div style={authGuardStyles.overlay}>
+          <div style={authGuardStyles.cardWrapper}>
+            <SignUp
+              onLoginSuccess={handleLoginSuccess}
+              onClose={() => {}} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 대시보드 구조 내부에 들어있는 팀원분들의 기존 속성(Props) 배달 코드를 온전히 복구했습니다. */}
       <div className={`dashboard-grid view-${activeTab}`}>
         {/* 1열: 발자취 리스트 영역 */}
         <div className="left-column">
@@ -248,7 +275,7 @@ function App() {
           />
         </div>
 
-        {/* 2열: 리플릿 지도 영역 (ref 연결) */}
+        {/* 2열: 리플릿 지도 영역 */}
         <div className="right-column" ref={mapColumnRef}>
           <TravelMap
             entries={entries}
@@ -270,7 +297,7 @@ function App() {
           />
         </div>
 
-        {/* 3열: Ollama 대화형 채팅 영역 추가 */}
+        {/* 3열: Ollama 대화형 채팅 영역 */}
         <div className="chat-column">
           <TravelAiChat />
         </div>
@@ -312,5 +339,34 @@ function App() {
     </div>
   );
 }
+
+// 💡 반응형(창 크기 조절) 환경에서도 완벽한 블러를 유지하기 위한 스타일 보완
+const authGuardStyles = {
+  overlay: {
+    position: "fixed",
+    top: "70px", // Header 상단바 높이만큼 띄움
+    left: 0,
+    right: 0,
+    bottom: 0,
+    
+    // 💡 [핵심 보완] 창이 작아져 뒤에 컴포넌트가 사라져도, 
+    // 가림막 자체에 반투명한 그라데이션 어두운 톤을 깔아주어 언제나 은은한 깊이감을 유지합니다.
+    background: "linear-gradient(135deg, rgba(15, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.85) 100%)",
+    
+    // 기존의 흐림 효과 유지
+    backdropFilter: "blur(14px)",               
+    WebkitBackdropFilter: "blur(14px)",
+    
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999, 
+  },
+  cardWrapper: {
+    width: "450px",
+    maxWidth: "90%",
+    padding: "10px",
+  }
+};
 
 export default App;

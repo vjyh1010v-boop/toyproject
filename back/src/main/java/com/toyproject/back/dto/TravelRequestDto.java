@@ -1,6 +1,7 @@
 package com.toyproject.back.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +29,8 @@ public class TravelRequestDto {
     private String region;
 
     private boolean useAi;
+
+    private List<String> tags;
 
     public TravelEntryDto toDto() {
         return TravelEntryDto.builder()
