@@ -1,8 +1,7 @@
 import axios from "axios";
 
-// const BASE_URL = "http://localhost:8080/api/travels";
-
-const BASE_URL = "http://210.119.14.73:8080/api/travels";
+const BASE_URL = "http://localhost:8080/api/travels";
+// const BASE_URL = "http://210.119.14.73:8080/api/travels";
 
 /**
  * 💡 공통 헤더를 가져오는 헬퍼 함수
