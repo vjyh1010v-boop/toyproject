@@ -16,8 +16,6 @@ const getAuthHeaders = () => {
   };
 };
 
-<<<<<<< HEAD
-=======
 /**
  * 💡 공통 헤더를 가져오는 헬퍼 함수
  * 브라우저 스토리지에 저장된 username을 가져와 백엔드가 요구하는 헤더 형식으로 만듭니다.
@@ -31,7 +29,6 @@ const getAuthHeaders = () => {
   };
 };
 
->>>>>>> main
 // 🔍 1. 조회: 로그인한 유저의 글만 가져오도록 헤더 추가
 export const getTravels = async () => {
   const response = await axios.get(BASE_URL, getAuthHeaders());
