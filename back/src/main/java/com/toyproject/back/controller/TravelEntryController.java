@@ -2,7 +2,11 @@ package com.toyproject.back.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.toyproject.back.dto.TravelRequestDto;
 import com.toyproject.back.dto.TravelResponseDto;
 import com.toyproject.back.dto.TravelAiResponse;
@@ -11,6 +15,7 @@ import com.toyproject.back.entity.User;
 import com.toyproject.back.repository.TravelEntryRepository;
 import com.toyproject.back.repository.UserRepository;
 import com.toyproject.back.service.AiService;
+import com.toyproject.back.service.FileService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +25,8 @@ public class TravelEntryController {
 
     private final TravelEntryRepository travelEntryRepository;
     private final AiService aiService;
-    private final UserRepository userRepository; 
+    private final UserRepository userRepository;
+    private final FileService fileService;
 
     /**
      * 🔍 1. 조회: 로그인한 사용자의 글만 가져오기
@@ -57,12 +63,13 @@ public class TravelEntryController {
     }
 
     /**
-     * ✍️ 2. 작성: 글을 쓸 때 현재 로그인한 유저 정보 묶어서 저장하기
+     * ✍️ 2. 작성: 글을 쓸 때 현재 로그인한 유저 정보 및 사진 파일 함께 묶어서 저장하기
      */
-    @PostMapping("/api/travels")
+    @PostMapping(value = "/api/travels", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public TravelResponseDto createTravel(
-        @RequestHeader("X-USER-USERNAME") String username, 
-        @RequestBody TravelRequestDto request
+        @RequestHeader("X-USER-USERNAME") String username,
+        @RequestPart("request") TravelRequestDto request, // 💡 @RequestBody를 @RequestPart로 수정하여 멀티파트 에러 원천 차단
+        @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("인증되지 않은 사용자입니다."));
@@ -74,7 +81,6 @@ public class TravelEntryController {
         travelEntry.setLatitude(request.getLatitude());
         travelEntry.setLongitude(request.getLongitude());
         travelEntry.setVisits(request.getVisits());
-        travelEntry.setImageUrl(request.getImageUrl());
         travelEntry.setRegion(request.getRegion());
         travelEntry.setTravelDate(request.getTravelDate());
         
@@ -83,6 +89,15 @@ public class TravelEntryController {
         
         travelEntry.setUser(user); 
 
+        // 📍 파일 업로드 서비스 적용
+        if (file != null && !file.isEmpty()) {
+            String savedImageUrl = fileService.uploadImage(file);
+            travelEntry.setImageUrl(savedImageUrl);
+        } else {
+            travelEntry.setImageUrl(request.getImageUrl());
+        }
+
+        // Gemma 4 AI 분석 로직
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
             if (request.isUseAi()) {
                 TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
@@ -138,13 +153,14 @@ public class TravelEntryController {
     }
 
    /**
-     * 🔄 4. 수정: 본인 글이 맞는지 권한 검증 후 수정 처리
+     * 🔄 4. 수정: 본인 글이 맞는지 권한 검증 후 수정 처리 (사진 수정 완벽 대응)
      */
-    @PutMapping("/api/travels/{id}")
+    @PutMapping(value = "/api/travels/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}) // 💡 멀티파트 설정 추가
     public TravelResponseDto updateTravel(
             @RequestHeader("X-USER-USERNAME") String username,
             @PathVariable("id") Long id,
-            @RequestBody TravelRequestDto request
+            @RequestPart("request") TravelRequestDto request, // 💡 @RequestBody -> @RequestPart로 변경
+            @RequestPart(value = "file", required = false) MultipartFile file // 💡 수정용 이미지 파일 추가 매개변수 도입
     ) {
         TravelEntry entry = travelEntryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Travel not found"));
@@ -160,12 +176,20 @@ public class TravelEntryController {
         entry.setLatitude(request.getLatitude());
         entry.setLongitude(request.getLongitude());
         entry.setVisits(request.getVisits());
-        entry.setImageUrl(request.getImageUrl());
         entry.setRegion(request.getRegion());
         
         // 🌟 [수정 반영] 프론트에서 수정되어 들어온 새 직접 태그 목록을 반영합니다.
         entry.setTags(request.getTags() != null ? new ArrayList<>(request.getTags()) : new ArrayList<>());
 
+        // 📍 수정 시 새로운 사진이 들어오면 덮어쓰고, 없으면 프론트에서 넘어온 기존 경로(또는 null)를 유지합니다.
+        if (file != null && !file.isEmpty()) {
+            String savedImageUrl = fileService.uploadImage(file);
+            entry.setImageUrl(savedImageUrl);
+        } else {
+            entry.setImageUrl(request.getImageUrl());
+        }
+
+        // AI 분석 수정 로직
         if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
             if (request.isUseAi()) {
                 TravelAiResponse aiResponse = aiService.generateAiAnalysis(request.getTitle(), request.getContent());
