@@ -188,28 +188,68 @@ function App() {
       latitude: parseFloat(formData.lat),
       longitude: parseFloat(formData.lng),
       visits: parseInt(formData.visits) || 1,
-      imageUrl: formData.image,
+      imageUrl: formData.image, // 기존 이미지 경로 또는 빈 문자열
       region: formData.region,
       useAi: isAiEnabled,
       tags: userTags // 👈 🌟 쪼개진 태그 배열을 페이로드에 탑재하여 서버로 배달합니다!
     };
 
+    // 📍 2. 멀티파트 전송용 FormData 객체 조립
+    const transferData = new FormData();
+
+    // 스프링의 @RequestPart("request") 명칭에 대응 (JSON 블롭 처리 필수)
+    transferData.append(
+      "request",
+      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+    );
+
+    // 사용자가 폼에서 새로 선택한 파일 객체(imageFile)가 있다면 폼데이터에 실어 보냄
+    // 스프링의 @RequestPart(value = "file", required = false) 명칭에 대응
+    if (formData.imageFile) {
+      transferData.append("file", formData.imageFile);
+    }
+
     try {
       if (isEditingId) {
-        await updateTravel(isEditingId, payload);
+        // 💡 수정 모드 호출 (travelApi가 내부적으로 axios.put을 수행하도록 호환 세팅)
+        await updateTravel(isEditingId, transferData);
       } else {
-        await createTravel(payload);
+        // 💡 신규 등록 모드 호출
+        await createTravel(transferData);
       }
 
+      // 초기화 작업
       setIsAddingNew(false);
       setIsEditingId(null);
+
+      // 📍 등록 성공 후 폼데이터 상태 원복 시 새로 만든 imageFile 필드도 함께 깔끔히 청소
+      setFormData({
+        title: "",
+        locationName: "",
+        date: new Date().toISOString().split("T")[0],
+        content: "",
+        lat: "",
+        lng: "",
+        visits: 1,
+        image: "",
+        imageFile: null, // 👈 추가
+        region: "서울",
+        useAi: false,
+      });
+
+      // 강제 파일 인풋 창 비우기
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
       // 🌟 추가 센스: 다음 글 작성을 위해 폼 데이터 속의 customTags도 깨끗하게 청소해 줍니다.
       setFormData(prev => ({ ...prev, customTags: "" }));
       await fetchTravels();
     } catch (error) {
       console.error("발자취 저장 중 오류 발생:", error);
-      alert("저장에 실패했습니다. AI 로컬 서버 상태를 확인해 주세요.");
+      alert(
+        "저장에 실패했습니다. 로컬 서버 및 파일 네트워크 상태를 확인해 주세요.",
+      );
     } finally {
       setIsAiLoading(false);
     }

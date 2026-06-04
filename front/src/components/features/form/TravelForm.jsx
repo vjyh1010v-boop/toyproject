@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import "./TravelForm.css";
 
 export default function TravelForm({
@@ -12,6 +13,46 @@ export default function TravelForm({
   exifStatus,
   isAiLoading, // 💡 App.jsx에서 넘겨준 AI 로딩 상태 받아오기
 }) {
+  // 📍 로컬에서 관리할 임시 이미지 미리보기 URL 상태
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  // 📍 컴포넌트가 켜지거나 수정 모드로 진입할 때 기존 이미지가 있으면 미리보기에 노출
+  useEffect(() => {
+    if (formData.imageFile) {
+      // 새로 파일 창에서 선택한 파일 객체가 들어있을 경우
+      setPreviewUrl(URL.createObjectURL(formData.imageFile));
+    } else if (formData.imageUrl) {
+      // 수정 모드 등에서 기존 서버 URL이 넘어온 경우
+      // 만약 상대경로(/images/...)로 들어온다면 스프링 주소를 붙여서 바인딩
+      const baseUrl = formData.imageUrl.startsWith("http")
+        ? ""
+        : "http://localhost:8080";
+      setPreviewUrl(`${baseUrl}${formData.imageUrl}`);
+    } else {
+      setPreviewUrl("");
+    }
+
+    // 메모리 누수 방지를 위한 Clean-up
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [formData.imageFile, formData.imageUrl]);
+
+  // 📍 파일 컴포넌트 내 핸들러 가공
+  const onFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      // 1. App.jsx 등 상위 컴포넌트의 업로드 핸들러(EXIF 추출 등이 있다면) 호출
+      if (handlePhotoUpload) {
+        handlePhotoUpload(e);
+      }
+      // 2. 상위의 formData 상태 구조에 파일 객체 꽂아넣기
+      setFormData({ ...formData, imageFile: selectedFile });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="form-grid">
       <h2
@@ -109,11 +150,54 @@ export default function TravelForm({
         />
       </div>
 
-      {/* 💡 [추가] AI 토글 체크박스 */}
+      {/* 📍 사진 업로드 & 미리보기 필드 */}
+      <div className="form-group full-width" style={{ marginBottom: "5px" }}>
+        <label className="form-label">
+          여행 사진 첨부 📸
+          {exifStatus && exifStatus.message && (
+            <span
+              style={{
+                fontSize: "0.8rem",
+                color: "#10b981",
+                marginLeft: "8px",
+              }}
+            >
+              ({exifStatus.message})
+            </span>
+          )}
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef} // 부모로부터 전달받은 ref 바인딩
+          onChange={onFileChange}
+          className="form-input"
+          style={{ padding: "6px" }}
+        />
+
+        {/* 선택한 이미지 미리보기 화면 출력 */}
+        {previewUrl && (
+          <div style={{ marginTop: "10px", position: "relative" }}>
+            <img
+              src={previewUrl}
+              alt="선택된 여행 사진"
+              style={{
+                width: "100%",
+                maxHeight: "180px",
+                objectFit: "cover",
+                borderRadius: "6px",
+                border: "1px solid var(--border-color, #e5e7eb)",
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* AI 토글 체크박스 */}
       <div
-        className="ai-toggle-group"
+        className="ai-toggle-group full-width" // 💡 그리드 정렬 유지를 위해 full-width 권장
         style={{
-          marginTop: "10px",
+          marginTop: "5px",
           display: "flex",
           alignItems: "center",
           gap: "8px",

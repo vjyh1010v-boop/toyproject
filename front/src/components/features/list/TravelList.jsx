@@ -19,7 +19,38 @@ export default function TravelList({
             key={entry.id}
             className={`entry-card ${isActive ? "active" : ""}`}
             onClick={() => setActiveEntryId(entry.id)}
+            style={{ overflow: "hidden" }} // 📍 사진의 테두리 둥글기를 카드가 깎아주도록 상속
           >
+            {/* 📍 [핵심 추가] 업로드된 이미지가 존재하면 카드 최상단에 고정 비율 썸네일 렌더링 */}
+            {entry.imageUrl && (
+              <div
+                className="entry-card-thumbnail"
+                style={{
+                  width: "100%",
+                  height: "140px", // 💡 카드의 답답함을 없애고 사진을 돋보이게 하는 황금 비율
+                  overflow: "hidden",
+                  borderBottom:
+                    "1px solid var(--border-color, rgba(255,255,255,0.05))",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                <img
+                  src={`http://210.119.14.73:8080${entry.imageUrl}`}
+                  alt={entry.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover", // 📍 원본 비율 유지하며 꽉 차게 조절
+                    display: "block",
+                  }}
+                  // 이미지 에러(네트워크 단절 등) 발생 시 엑박 대신 썸네일 영역 전체 숨김 처리
+                  onError={(e) => {
+                    e.target.parentElement.style.display = "none";
+                  }}
+                />
+              </div>
+            )}
+
             {/* 💡 불필요한 감싸개 div를 제거하여 레이아웃 흐름을 일원화했습니다. */}
             <div className="entry-card-meta">
               <span
